@@ -12,9 +12,19 @@ module OmniAuth
     #    use OmniAuth::Strategies::SoundCloud, 'consumerkey', 'consumersecret'
     #
 
-    class SoundCloud < OmniAuth::Strategies::OAuth
+    class SoundCloud < OmniAuth::Strategies::OAuth2
+    
+      
       def initialize(app, consumer_key = nil, consumer_secret = nil, options = {}, &block)
-        super(app, :soundcloud, consumer_key, consumer_secret, {:site => 'https://api.soundcloud.com'}, options)
+        client_options = {
+          :site => 'https://api.soundcloud.com',
+          :authorize_path => 'http://soundcloud.com/connect',
+          :access_token_path => 'https://api.soundcloud.com/oauth2/token'
+        }
+
+        options.merge!(:response_type => 'code', :grant_type => 'authorization_code')
+
+        super(app, :soundcloud, consumer_key, consumer_secret, client_options, options, &block)
       end
 
       def auth_hash
@@ -27,7 +37,6 @@ module OmniAuth
 
       def user_info
         user_hash = self.user_hash
-
         {
           'name' => user_hash['full_name'],
           'nickname' => user_hash['username'],
@@ -37,9 +46,10 @@ module OmniAuth
           'urls' => {'Website' => user_hash['website']}
         }
       end
+      
 
       def user_hash
-        @user_hash ||= MultiJson.decode(@access_token.get('/me.json').body)
+        @user_hash ||= MultiJson.decode(@access_token.get('/me.json'))
       end
     end
   end
